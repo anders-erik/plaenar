@@ -10,32 +10,48 @@ struct Cli {
     debug: u8,
 
     #[arg(short, long)]
-    apa: Option<String>,
+    scope: Option<String>,
+
+    #[arg(short = 'o', long="output", default_value = "stdout")]
+    output: String,
+
+    #[arg(short = 'f', long="format", default_value = "plain")]
+    format: String,
+
+    #[arg(short='t', long="type", help = "The type of planner object to create [project, module, task]")]
+    object_type: String,
+    
 
     #[command(subcommand)]
-    command: Option<Commands>,
+    verb: Option<Commands>,
+
 }
 
 #[derive(Subcommand)]
 enum Commands {
-
-    Project {
-        #[arg(short, long)]
-        list: bool,
-    }
-    
+    New {},
+    Parse {}
 }
 
 fn main() {
     // let s1 = "Hola, Mundo!";
     let s1: String = String::from("Hola, Mundo!");
     let s2: String = s1;
-    let s3: &str = "Yello"; 
+    let s3: &str = "Yello";
+    let s4: &str = "Yello";
+
     println!("{:?}", s2);
     println!("{s3}");
+    println!("{}", s4);
 
     let cli: Cli = Cli::parse();
     println!("Debug: {}", cli.debug);
+
+    let output = cli.output;
+    let format = cli.format;
+    let object_type = cli.object_type;
+    // let format = cli.verb.;
+    
 
     // match cli.debug {
     //     0 => println!("Debug mode is off"),
@@ -51,15 +67,20 @@ fn main() {
     // }
 
     
-    match &cli.command {
-        Some(Commands::Project { list }) => {
-            if *list {
-                println!("project list");
-            } else {
-                println!("unknown project command");
-            }
+    match &cli.verb {
+        Some(Commands::Parse { }) => {
+            println!("project parse output={output}, format={format}");
+        }
+        Some(Commands::New { }) => {
+            println!("project new :  type= {object_type}, output={output}, format={format}");
         }
         None => {}
     }
+
+    test();
 }
 
+
+fn test() {
+    println!("Hola, Mundo!");
+}
