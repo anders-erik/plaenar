@@ -31,6 +31,9 @@ enum Commands {
 
         #[arg(short='t', long="task", default_value="false", help = "Target the task objects. ")]
         task: bool,
+
+        #[arg(short='u', long="aeusb-root-dir", default_value="", help = "Aeusb root directory.")]
+        aeusb_root_argument: String,
     },
     Parse {
 
@@ -48,8 +51,13 @@ enum Commands {
 
         #[arg(short = 'f', long="format", default_value = "plain")]
         format: String,
+
+        #[arg(short='u', long="aeusb-root-dir", default_value="", help = "Aeusb root directory.")]
+        aeusb_root_argument: String,
     }
 }
+
+
 
 
 enum ObjectType {
@@ -69,7 +77,94 @@ struct RunScope {
 
 // Holds the configuration for the parse/creation-run
 struct PlaenarRun  {
-    run_scope: RunScope
+    run_scope: RunScope,
+    aeusb_root_dir: String,
+    /// Verified directory path
+    // projects_root_dir_path: String,
+    projects_root_dir: PlaenarDir,
+}
+#[derive(Debug)]
+enum PleanarFileType {
+    Unknown,
+    tasks,
+    media,
+    markdown,
+}
+
+#[derive(Debug)]
+struct PlaenarDir {
+    path: String,
+    name: String,
+    dirs: Vec<PlaenarDir>,
+    files: Vec<PlaenarFile>,
+}
+
+#[derive(Debug)]
+struct PlaenarFile {
+    path: String,
+    name: String,
+    file_type: PleanarFileType,
+    contents: String,
+}
+
+impl PlaenarDir {
+
+    fn parse_dir_contents(&mut self){
+
+        
+        match fs::read_dir(self.path.clone() ) {
+        // match fs::read_dir(self.projects_root_dir_path.clone() ) {
+
+            Err(why) => println!("! {:?}", why.kind()),
+            
+            Ok(paths) => for path in paths {
+                let full_dir_path = path.unwrap().path();
+                let dir_name = full_dir_path.file_name().unwrap().to_str();
+                // let name = Some(&str);
+                // let name = String::from_str(dirName);
+                // println!("> {:?}", path.unwrap().path());
+                // println!("> dirname = {:?}", dirName);
+                match dir_name {
+                    Some(name) => {
+                        println!("{:?}", name);
+                        self.dirs.push(PlaenarDir {
+                            name: String::from(name).clone(),
+                            path: self.path.clone() + name,
+                            dirs: Vec::new(),
+                            files: Vec::new(),
+                        });
+                    },
+                    None => eprintln!("ERROR"),
+                }
+            },
+        }
+
+    }
+
+
+    fn verify_root_dir(project_root_path_string: &String) -> &String {
+
+        let projects_root_dir_path_exists = std::fs::exists(project_root_path_string.clone());
+        
+        // Make sure that directory actually exists
+        match projects_root_dir_path_exists {
+            Ok(projects_root_dir_path_exists) => {
+                // println!("projects_root_dir_path_exists = {}", projects_root_dir_path_exists);
+                if projects_root_dir_path_exists {
+                    return project_root_path_string;
+                } else {
+                    eprintln!("Unable to find aeusb/project root directory @ {}", project_root_path_string );
+                    std::process::exit(1);
+                }
+            },
+            Err(e) => {
+                eprintln!("Error when verifying existence of aeusb/project root directory.");
+                eprintln!("{}", e);
+                std::process::exit(1);
+            },
+        };
+
+    }
 }
 
 impl PlaenarRun {
@@ -80,44 +175,27 @@ impl PlaenarRun {
     //     }
     // }
 
-    pub fn parse_projects(&mut self){
-        
-        // result.inspect(|x: &ReadDir | println!("original: {:?}", x.count() ));
-        // result.
-        // result.as_mut().
-        
-        // std::fs::ReadDir
-
-        // println!("is ok? {}", result.is_ok() );
-        // println!("is ok? {}", result.ok());
-
-        let mut plaenar_root_dir: String = String::from("/");
-        let vars: Vec<(String, String)> = env::vars().collect();
-        for mut var in vars {
-        // println!("{:?}", var);
-            if var.0 == "PLAENAR_ROOT_DIR" {
-                plaenar_root_dir = var.1;
-                // println!("{:?}", var.1);
-            }
-        }
-        println!("PLAENAR_ROOT_DIR = {}", plaenar_root_dir);
+    pub fn parse_aeusb(&mut self){
         
 
-        match fs::read_dir(plaenar_root_dir) {
-        Err(why) => println!("! {:?}", why.kind()),
-        Ok(paths) => for path in paths {
-            let fullDirPath = path.unwrap().path();
-            let dirName = fullDirPath.file_name().unwrap().to_str();
-            // let name = Some(&str);
-            // let name = String::from_str(dirName);
-            // println!("> {:?}", path.unwrap().path());
-            // println!("> dirname = {:?}", dirName);
-            match dirName {
-                Some(name) => println!("{:?}", name),
-                None => println!("ERROR"),
-            }
-        },
-    }
+        // match fs::read_dir(self.projects_root_dir.path.clone() ) {
+        // // match fs::read_dir(self.projects_root_dir_path.clone() ) {
+
+        //     Err(why) => println!("! {:?}", why.kind()),
+            
+        //     Ok(paths) => for path in paths {
+        //         let full_dir_path = path.unwrap().path();
+        //         let dir_name = full_dir_path.file_name().unwrap().to_str();
+        //         // let name = Some(&str);
+        //         // let name = String::from_str(dirName);
+        //         // println!("> {:?}", path.unwrap().path());
+        //         // println!("> dirname = {:?}", dirName);
+        //         match dir_name {
+        //             Some(name) => println!("{:?}", name),
+        //             None => println!("ERROR"),
+        //         }
+        //     },
+        // }
         
     }
 
@@ -168,11 +246,11 @@ fn main() {
     
     
     match &cli.verb {
-        Some(Commands::New { project, module, task }) => {
+        Some(Commands::New {aeusb_root_argument, project, module, task }) => {
             println!(" new :  project= {project}");
         }
 
-        Some(Commands::Parse { project, module, task, output, format }) => {
+        Some(Commands::Parse {aeusb_root_argument, project, module, task, output, format }) => {
             // println!("project={}", project);
 
             let run_scope: RunScope;
@@ -193,17 +271,62 @@ fn main() {
                     task: true,
                 };
             }
+            println!("run_scope = {run_scope:?}");
+
+
+
+            // Determine the root directory of aeusb
+            let mut aeusb_root_dir: String = String::from("");
+
+            // Look through environment
+            let mut aeusb_root_env: String = String::from("");
+            let vars: Vec<(String, String)> = env::vars().collect();
+            for mut var in vars {
+            // println!("{:?}", var);
+                if var.0 == "AEUSB" {
+                    aeusb_root_env = var.1;
+                    // println!("{:?}", var.1);
+                }
+            }
+
+
+            // Set root directory
+            // The arguments path takes precedence over environment variable!
+            if aeusb_root_argument != "" {
+                aeusb_root_dir = aeusb_root_argument.to_string();
+            } else if aeusb_root_env != "" {
+                aeusb_root_dir = aeusb_root_env;
+            } else {
+                eprintln!("No aeusb root directory provided.");
+                eprintln!("Make sure to proved -u flag or the AEUSB envvar!");
+                std::process::exit(1);
+            }
+            
+            let projects_root_dir_path_string = aeusb_root_dir.clone() + "projects";
+            let projects_root_dir_path = PlaenarDir::verify_root_dir(&projects_root_dir_path_string);
 
             
-            println!("run_scope = {run_scope:?}");
+            
+            let mut projects_root_dir = PlaenarDir {
+                path: projects_root_dir_path.clone(),
+                name: String::from("projects"),
+                files: Vec::new(),
+                dirs: Vec::new(),
+            };
+
+
+            projects_root_dir.parse_dir_contents();
 
 
             let mut plaenar_run = PlaenarRun {
                 run_scope: run_scope,
+                aeusb_root_dir: aeusb_root_dir,
+                projects_root_dir: projects_root_dir,
             };
 
-            // plaenar_run.parse_projects();
-            plaenar_run.parse_projects();
+            println!("{:?}", plaenar_run.projects_root_dir.dirs)
+            
+            // plaenar_run.parse_aeusb();
             
             // plaenar_run.set_run_scope(run_scope);
 
