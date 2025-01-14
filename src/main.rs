@@ -1,9 +1,10 @@
 
-// use std::fs::FileType;
 use std::{env, fs, io};
 use std::path::Path;
-
 use clap::{Parser, Subcommand};
+
+pub mod plaen;
+
 
 
 #[derive(Parser)]
@@ -34,7 +35,7 @@ enum Commands {
         #[arg(short='t', long="task", default_value="false", help = "Target the task objects. ")]
         task: bool,
 
-        #[arg(short='u', long="aeusb-root-dir", default_value="", help = "Aeusb root directory.")]
+        #[arg(short='u', long="aeusb-root-dir", default_value="", help = "Aeusb root directory. [overrides $AESAFE envvar]")]
         aeusb_root_argument: String,
     },
     Parse {
@@ -54,11 +55,10 @@ enum Commands {
         #[arg(short = 'f', long="format", default_value = "plain")]
         format: String,
 
-        #[arg(short='u', long="aeusb-root-dir", default_value="", help = "Aeusb root directory.")]
+        #[arg(short='u', long="aeusb-root-dir", default_value="", help = "Aeusb root directory. [overrides $AESAFE envvar]")]
         aeusb_root_argument: String,
     }
 }
-
 
 
 
@@ -101,10 +101,16 @@ impl RunScope {
     }
 }
 
+enum RunVerb {
+    None,
+    Parse,
+    New,
+}
 
 // Holds the configuration for the parse/creation-run
 struct Plaenar  {
     run_scope: RunScope,
+    run_verb: RunVerb,
     aeusb_root_dir: PlaenarDir,
     /// Verified directory path
     // projects_root_dir_path: String,
@@ -116,9 +122,14 @@ impl Plaenar {
     pub fn new() -> Self {
         Plaenar {
             run_scope: RunScope::new(),
+            run_verb: RunVerb::None,
             aeusb_root_dir: PlaenarDir::new(),
             aeusb_projects_dir: PlaenarDir::new(),
         }
+    }
+
+    pub fn find_and_verify_root_and_project_dir_paths(root_path_arg: String){
+
     }
 
 }
@@ -254,38 +265,6 @@ impl PlaenarDir {
         }
 
     }
-
-    // fn verify_root_dir(project_root_path_string: &String) -> &String {
-
-    //     let projects_root_dir_path_exists = std::fs::exists(project_root_path_string.clone());
-        
-    //     // Make sure that directory actually exists
-    //     match projects_root_dir_path_exists {
-    //         Ok(projects_root_dir_path_exists) => {
-    //             // println!("projects_root_dir_path_exists = {}", projects_root_dir_path_exists);
-    //             if projects_root_dir_path_exists {
-    //                 return project_root_path_string;
-    //             } else {
-    //                 eprintln!("Unable to find aeusb/project root directory @ {}", project_root_path_string );
-    //                 std::process::exit(1);
-    //             }
-    //         },
-    //         Err(e) => {
-    //             eprintln!("Error when verifying existence of aeusb/project root directory.");
-    //             eprintln!("{}", e);
-    //             std::process::exit(1);
-    //         },
-    //     };
-
-    // }
-
-
-
-    // fn load_from_string(path_string: String) {
-
-
-    // }
-
     
 
 }
@@ -312,43 +291,11 @@ enum PleanarFileType {
 
 fn main() {
     
-    // let s1: String = String::from("Hola, Mundo!");
-    // let s2: String = s1;
-    // let s3: &str = "Yello";
-    // let s4: &str = "Yello";
-
-    // println!("{s2}");
-    // println!("{}", s3);
-    // println!("{:?}", s4);
-
-    // println!("Debug: {}", cli.debug);
-
-
-    
+    plaen::test();
 
     let cli: Cli = Cli::parse();
 
     let mut plaenar = Plaenar::new();
-    
-    
-    // let output = cli.output;
-    // let format = cli.format;
-    // let object_type = cli.object_type;
-    // let format = cli.verb.;
-    
-
-    // match cli.debug {
-    //     0 => println!("Debug mode is off"),
-    //     1 => println!("Debug mode is kind of on"),
-    //     2 => println!("Debug mode is on"),
-    //     _ => println!("Don't be crazy"),
-    // }
-
-    
-    // You can check the value provided by positional arguments, or option arguments
-    // if let Some(name) = cli.name.as_deref() {
-    //     println!("Value for name: {name}");
-    // }
     
     
     match &cli.verb {
@@ -361,6 +308,8 @@ fn main() {
 
             plaenar.run_scope.load_cli_args(project, module, task);
 
+
+            // VERIFY ROOT AND PROJECT DIRS FUNC
 
 
             // Determine the root directory of aeusb
@@ -435,49 +384,6 @@ fn main() {
             println!("{:?}", plaenar.aeusb_projects_dir.dirs)
 
             
-            // let mut projects_root_dir = PlaenarDir {
-            //     path: projects_root_dir_path.clone(),
-            //     name: String::from("projects"),
-            //     files: Vec::new(),
-            //     dirs: Vec::new(),
-            // };
-
-
-            // projects_root_dir.parse_dir_contents();
-
-
-            // let plaenar_run = PlaenarRun {
-            //     run_scope: run_scope,
-            //     aeusb_root_dir: aeusb_root_dir_string,
-            //     projects_root_dir: projects_root_dir,
-            // };
-
-            // println!("{:?}", plaenar_run.aeusb_projects_dir.dirs)
-            
-            // plaenar_run.parse_aeusb();
-            
-            // plaenar_run.set_run_scope(run_scope);
-
-
-
-            // plaenarRun.set_run_type(ObjectType::Project);
-            // if *project {
-            //     // plaenarRun.parse_object_type(object_type);
-            //     plae
-            // }
-            // let objectType: ObjectType;
-            // Make sure that a valid input is used
-            // if !(object_type == "project" || object_type == "p") && (object_type != "module") && (object_type != "task") {
-            //     println!("Not valid Object Type. Exiting!");
-            //     std::process::exit(0);
-            //     // ::std::process::exit(0);
-            // }
-
-            // run_parse(object_type, output, format);
-            //     let output = output;
-            //     let format = format;
-            //     let object_type = object_type;
-            // println!("project parse :  object-type= {object_type}, output={output}, format={format}");
         }
         None => {}
     }
@@ -495,7 +401,6 @@ fn test_verify_dir_string() {
         Ok(_) => println!("Directory is valid!"),
         Err(err) => {
             eprintln!("Directory verification failed: {}", err);
-            // panic!("")
         },
     }
 
