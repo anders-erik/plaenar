@@ -7,7 +7,7 @@ pub fn test(){
 pub mod plaenar_fs;
 
 
-use std::{env, fs, io};
+use std::env;
 use std::path::Path;
 
 
@@ -53,23 +53,60 @@ enum RunVerb {
     New,
 }
 
-struct PlaenarProject {
-    name: String,
-    dir: plaenar_fs::PlaenarDir,
+struct Project {
+    pub name: String,
+    pub dir: plaenar_fs::Directory,
 }
 
-impl PlaenarProject {
-    pub fn new() -> PlaenarProject {
-        PlaenarProject {
-            name: String::from(""),
-            dir: plaenar_fs::PlaenarDir::new(),
-        }
+impl Project {
+    // pub fn new() -> PlaenarProject {
+    //     PlaenarProject {
+    //         name: String::from(""),
+    //         dir: plaenar_fs::PlaenarDir::new(),
+    //     }
+    // }
+
+
+    /// Creates PlaenarProject with an (ideally) previously tested path. <br>
+    /// Obviously can't guarantee existence until actuall parsing happens. 
+    /// 
+    /// TODO : Should return Result with potential error
+     pub fn new(path_string: String) -> Result<Project, std::io::Error> {
+
+        // Make sure firectory is ok
+        let mut validated_proj_path = match plaenar_fs::Directory::verify_dir_string(&path_string) {
+            Ok(validated_proj_path) => validated_proj_path,
+            Err(err) => {
+                eprintln!("{:?}", err);
+                std::process::exit(1);
+            },
+        };
+
+        // Create PlaenarDir
+        let mut plaenar_dir = plaenar_fs::Directory::new();
+        plaenar_dir.path = path_string.clone();
+
+        let path = Path::new(&path_string);
+        // TODO: CLEAN UP 'unwrap'
+        // let project_name = String::from(path.to_str().unwrap());
+        let project_name = String::from(path.file_name().unwrap().to_str().unwrap());
+        plaenar_dir.name = project_name.clone();
+
+        // Parse and print
+        plaenar_dir.parse_dir_contents();
+        // plaenar_dir.print_dir_contents(2);
+
+        // let project_name = project_name.clone();
+        // let project_name = *project_name;
+        Ok(Project {
+            name: project_name.clone(),
+            dir: plaenar_dir,
+        })
+
+        // Err((std::io::Error::new(std::io::ErrorKind::InvalidInput, "Path is not a directory")))
     }
-    
-    pub fn load_fs(&mut self, path: String) {
-        // self.dir.path = path;
-        // self.dir.parse_dir_contents();
-    }
+
+
 }
 
 // Holds the configuration for the parse/creation-run
@@ -77,10 +114,10 @@ pub struct Plaenar  {
     pub run_scope: RunScope,
     run_verb: RunVerb,
 
-    projects: PlaenarProject,
+    projects: Vec<Project>,
 
-    aeusb_root_dir: plaenar_fs::PlaenarDir,
-    aeusb_projects_dir: plaenar_fs::PlaenarDir,
+    aeusb_root_dir: plaenar_fs::Directory,
+    aeusb_projects_dir: plaenar_fs::Directory,
 }
 
 impl Plaenar {
@@ -89,21 +126,59 @@ impl Plaenar {
         Plaenar {
             run_scope: RunScope::new(),
             run_verb: RunVerb::None,
-            projects: PlaenarProject::new(),
-            aeusb_root_dir: plaenar_fs::PlaenarDir::new(),
-            aeusb_projects_dir: plaenar_fs::PlaenarDir::new(),
+            projects: Vec::new(),
+            aeusb_root_dir: plaenar_fs::Directory::new(),
+            aeusb_projects_dir: plaenar_fs::Directory::new(),
         }
     }
 
     pub fn print(&self){
         // TODO: loop through projects and print them
-        // println!("{:?}", self.aeusb_projects_dir.dirs)
+        
+        self.aeusb_root_dir.print_dir_contents(0);
+
+        println!("{}", "\nprojects");
+
+        // Print all project names and their contents
+        let project_count = self.projects.len();
+        for i in 0..project_count {
+            println!("    {}", self.projects[i].name);
+            self.projects[i].dir.print_dir_contents(8);
+        }
+
+    }
+
+    /// Load all project-dirs from the projects directory and pushes them as PlaenarProject into vector
+    pub fn load_project_directories(&mut self){
+        println!("Projects");
+
+        // names of directories in projects directory
+        let projects_dir_dir_names = self.aeusb_projects_dir.get_dirs();
+        let dir_path = &self.aeusb_projects_dir.path;
+
+        for dir_name in projects_dir_dir_names {
+        
+            let mut project_dir_string = String::new();
+            project_dir_string.push_str(dir_path);
+            project_dir_string.push_str("/");
+            project_dir_string.push_str(&dir_name);
+            project_dir_string.push_str("/");
+
+            // println!("{project_dir_string}");
+
+            let new_project_object =  match Project::new(project_dir_string) {
+                Ok(new_project_object) => new_project_object,
+                Err(err) => std::process::exit(1),
+            };
+
+            self.projects.push(new_project_object);
+
+        }
+
+        // self.projects.push( PlaenarProject::new() );
     }
 
     pub fn find_and_verify_and_load_root_and_project_dirs(&mut self, aeusb_root_argument: String){
-
-        // VERIFY ROOT AND PROJECT DIRS FUNC
-
 
         // Determine the root directory of aeusb
         let mut aeusb_root_dir_string: String = String::from("");
@@ -139,7 +214,7 @@ impl Plaenar {
         // New immutable owner of root path candidate
         let aeusb_root_dir_string = &aeusb_root_dir_string;
 
-        let verified_root_dir_string = match plaenar_fs::PlaenarDir::verify_dir_string(aeusb_root_dir_string) {
+        let verified_root_dir_string = match plaenar_fs::Directory::verify_dir_string(aeusb_root_dir_string) {
             Ok(returned_string) => returned_string,
             Err(err) => {
                 eprintln!("Root directory verification failed : {}", err);
@@ -150,7 +225,7 @@ impl Plaenar {
         self.aeusb_root_dir.set_name_and_path(String::from("root"), verified_root_dir_string.clone());
 
         self.aeusb_root_dir.parse_dir_contents();
-        self.aeusb_root_dir.print_dir_contents(0);
+        
 
 
 
@@ -158,7 +233,7 @@ impl Plaenar {
         // PROJECTS DIRECTORY
 
         let projects_projects_dir_path_string = aeusb_root_dir_string.clone() + "projects";
-        let verified_projects_dir_string = match plaenar_fs::PlaenarDir::verify_dir_string(&projects_projects_dir_path_string) {
+        let verified_projects_dir_string = match plaenar_fs::Directory::verify_dir_string(&projects_projects_dir_path_string) {
             Ok(returned_string) => returned_string,
             Err(err) => {
                 eprintln!("Project directory verification failed : {}", err);
@@ -169,7 +244,7 @@ impl Plaenar {
         self.aeusb_projects_dir.set_name_and_path(String::from("projects"), verified_projects_dir_string.clone());
         
         self.aeusb_projects_dir.parse_dir_contents();
-        self.aeusb_projects_dir.print_dir_contents(2);
+        
 
         // let projects_root_dir_path = PlaenarDir::verify_root_dir(&projects_root_dir_path_string);
 

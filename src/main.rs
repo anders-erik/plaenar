@@ -4,8 +4,6 @@ use clap::{Parser, Subcommand};
 
 pub mod plaenar;
 
-use plaenar::plaenar_fs;
-
 
 
 
@@ -68,7 +66,7 @@ enum Commands {
 fn main() {
     
     // plaenar::test();
-    plaenar_fs::plaenar_fs_test();
+    // plaenar_fs::plaenar_fs_test();
 
     let cli: Cli = Cli::parse();
 
@@ -87,14 +85,20 @@ fn main() {
             plaenar.run_scope.load_cli_args(project, module, task);
 
             plaenar.find_and_verify_and_load_root_and_project_dirs(aeusb_root_argument.clone());
+            // root and project directories are verified and their contents available
+
+            plaenar.load_project_directories();
+
+            if output == "stdout" {
+                plaenar.print();
+            }
             
-            plaenar.print();
 
             
         }
         None => {}
     }
-
+    
 }
 
 
