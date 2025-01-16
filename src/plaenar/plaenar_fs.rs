@@ -5,7 +5,9 @@ pub fn plaenar_fs_test(){
 
 
 use std::{fs, io};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+
 
 
 #[derive(Debug)]
@@ -85,18 +87,19 @@ impl Directory {
     pub fn parse_dir_contents(&mut self) -> io::Result<()>{
 
         // Grab an easily handled vector of directory entries
-        let dirs = match fs::read_dir(self.path.clone() ) {
+        let entries = match fs::read_dir(self.path.clone() ) {
 
             Ok(entries) => entries.collect::<Result<Vec<_>, io::Error>>()?,
             Err(err) => {
-                eprintln!("Failed to read directory: {}", err);
+                eprintln!("Failed to read directory {} \n {}",self.path.clone() , err);
                 return Err(err);
             },
             
         };
 
+
         // Put files and dirs in their respective PlaenarDir-vector
-        for entry in dirs {
+        for entry in entries {
             let file_type = entry.file_type()?;
 
             // Flags
@@ -139,7 +142,7 @@ impl Directory {
         }
 
         for dir_name in dir_names {
-            println!("{}{}", indent_string, dir_name);
+            println!("{}_ {}", indent_string, dir_name);
         }
 
         for file_name in file_names {

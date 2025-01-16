@@ -38,7 +38,7 @@ enum Commands {
         #[arg(short='u', long="aeusb-root-dir", default_value="", help = "Aeusb root directory. [overrides $AESAFE envvar]")]
         aeusb_root_argument: String,
     },
-    Parse {
+    Ls {
 
         #[arg(short='p', long="project", default_value="false", help = "Target the project objects. ")]
         project: bool,
@@ -74,11 +74,12 @@ fn main() {
 
     
     match &cli.verb {
+        
         Some(Commands::New {aeusb_root_argument, project, module, task }) => {
             println!(" new :  project= {project}");
         }
 
-        Some(Commands::Parse {aeusb_root_argument, project, module, task, output, format }) => {
+        Some(Commands::Ls {aeusb_root_argument, project, module, task, output, format }) => {
             
             // println!(aeusb_root_argument);
 
@@ -87,10 +88,10 @@ fn main() {
             plaenar.find_and_verify_and_load_root_and_project_dirs(aeusb_root_argument.clone());
             // root and project directories are verified and their contents available
 
-            plaenar.load_project_directories();
+            plaenar.load_projects();
 
             if output == "stdout" {
-                plaenar.print();
+                plaenar.print_all();
             }
             
 

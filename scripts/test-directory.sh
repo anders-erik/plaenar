@@ -38,6 +38,7 @@ mkdir -p project_2/assets
 
 
 mkdir -p project_3
+touch    project_3/tasks.yaml
 mkdir -p project_3/module_1
     touch    project_3/module_1/tasks.yaml
 mkdir -p project_3/module_2
