@@ -1,12 +1,113 @@
 
-pub fn plaenar_fs_test(){
-    println!("plaenar_fs_test");
-}
-
 
 use std::fs::read_dir;
 use std::{fs, io};
 use std::path::{Path, PathBuf};
+
+use TaskYaml::FileTree;
+
+
+
+mod TaskYaml {
+
+    use serde::Deserialize;
+    use serde_yaml;
+    use std::fs;
+    use std::path::PathBuf;
+
+        #[derive(Debug, Deserialize)]
+    struct Project {
+        name: String,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct Task {
+        name: String,
+        id: String,
+        descript: String,
+        time_esti: f32,
+        time_spent: f32,
+        completed: bool,
+        note: String,
+    }
+
+    #[derive(Debug, Deserialize)]
+    pub struct FileTree {
+        project: Vec<Project>,
+        tasks: Vec<Task>,
+    }
+
+    impl  FileTree {
+        pub fn new() -> FileTree{
+            return FileTree {
+                project: Vec::new(),
+                tasks: Vec::new(),
+            }
+        }
+    }
+
+    pub fn read_yaml_file(path: PathBuf) -> Result<FileTree, Box<dyn std::error::Error>> {
+        let file_content = fs::read_to_string(&path)?;
+        let config: FileTree = serde_yaml::from_str(&file_content)?;
+        Ok(config)
+    }
+
+
+}
+
+
+
+#[derive(Debug)]
+pub struct TaskFile {
+    pub file_path: PathBuf,
+    project_name: String,
+    file_tree: TaskYaml::FileTree,
+}
+
+impl TaskFile {
+
+    pub fn empty() -> TaskFile {
+        return TaskFile {
+            file_path: PathBuf::new(),
+            project_name: String::new(),
+            file_tree: FileTree::new(),
+        }
+    }
+
+    /// Stores the file path and  project name
+    pub fn new(mut project_path: PathBuf, project_name: String ) -> TaskFile {
+        
+        project_path.set_file_name("tasks.yaml");
+
+        let file_path = project_path;
+
+        if ! file_path.is_file() {
+            return TaskFile::empty();
+        }
+
+        let file_tree = match TaskYaml::read_yaml_file(file_path.clone()) {
+            Ok(file_tree) => {                
+                file_tree
+            }
+            Err(e) => {
+                eprintln!("Failed to read YAML file: {}", e);
+                return TaskFile::empty();
+            }
+        };
+        println!("\n");
+        println!("File Path: {:?}", file_path);
+        println!("Parsed file tree: {:?}", file_tree);
+
+        return TaskFile {
+            file_path: file_path,
+            project_name: project_name.clone(),
+            file_tree: file_tree,
+        };
+
+    }
+
+
+}
 
 
 
