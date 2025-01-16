@@ -63,18 +63,18 @@ enum Commands {
 
 
 
-fn main() {
+fn main() -> Result<(), std::io::Error> {
     
     // plaenar::test();
     // plaenar_fs::plaenar_fs_test();
 
     let cli: Cli = Cli::parse();
 
-    let mut plaenar = plaenar::Plaenar::new();
-
+    // let mut plaenar = plaenar::Plaenar::new();
+    let mut plaenar: plaenar::Plaenar;
     
     match &cli.verb {
-        
+
         Some(Commands::New {aeusb_root_argument, project, module, task }) => {
             println!(" new :  project= {project}");
         }
@@ -83,10 +83,14 @@ fn main() {
             
             // println!(aeusb_root_argument);
 
+            // root and project directories are verified and their contents available
+            plaenar = plaenar::Plaenar::init(aeusb_root_argument.clone())?;
+
+            
             plaenar.run_scope.load_cli_args(project, module, task);
 
-            plaenar.find_and_verify_and_load_root_and_project_dirs(aeusb_root_argument.clone());
-            // root and project directories are verified and their contents available
+            // plaenar.find_and_verify_and_load_root_and_project_dirs(aeusb_root_argument.clone());
+            
 
             plaenar.load_projects();
 
@@ -100,6 +104,7 @@ fn main() {
         None => {}
     }
     
+    Ok(())
 }
 
 

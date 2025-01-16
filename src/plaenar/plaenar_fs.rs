@@ -4,6 +4,7 @@ pub fn plaenar_fs_test(){
 }
 
 
+use std::fs::read_dir;
 use std::{fs, io};
 use std::path::{Path, PathBuf};
 
@@ -12,8 +13,10 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub struct Directory {
-    pub path: String,
     pub name: String,
+    /// e.g. /path/to/projects/create-library/ is the  path to the 'crate-library' project
+    pub path: PathBuf,
+    pub parent_path: PathBuf,
     dir_names: Vec<String>,
     file_names: Vec<String>,
 }
@@ -30,10 +33,21 @@ pub struct Directory {
 // }
 impl Directory {
 
-    pub fn new() -> Directory {
+    // pub fn new() -> Directory {
+    //     Directory {
+    //         name: String::from(""),
+    //         path: PathBuf::from(""),
+    //         parent_path: PathBuf::from(""),
+    //         dir_names: Vec::new(),
+    //         file_names: Vec::new(),
+    //     }
+    // }
+
+     pub fn new(_name: &String, _path: &PathBuf, _parent_path: &PathBuf) -> Directory {
         Directory {
-            name: String::from(""),
-            path: String::from(""),
+            name: _name.clone(),
+            path: _path.clone(),
+            parent_path: _parent_path.clone(),
             dir_names: Vec::new(),
             file_names: Vec::new(),
         }
@@ -41,23 +55,48 @@ impl Directory {
 
 
 
-
     pub fn get_dirs(&self) -> Vec<String> {
         return self.dir_names.clone();
+    }
+    
+    pub fn get_dir_entries(&self) -> io::Result<Vec<fs::DirEntry>> {    
+        
+        // Grab an easily handled vector of directory entries
+        // let entries = match fs::read_dir(self.path.clone() ) {
+
+        //     Ok(entries) => entries.collect::<Result<Vec<_>, io::Error>>()?,
+        //     Err(err) => {
+        //         let path_path_buf = self.path.clone();
+        //         // To lossy string conversion is ok for now -- the printing is the mort important right now..
+        //         eprintln!("Failed to read directory entry {} \n {}",path_path_buf.to_string_lossy().to_string() , err);
+        //         return Err(err);
+        //     },
+            
+        // };
+
+        
+
+        let dir_read = read_dir(self.path.clone())?;
+        let dir_vector = dir_read.collect::<Result<Vec<_>, io::Error>>()?;
+
+        Ok(dir_vector)
+        
     }
     pub fn get_files(&self) -> Vec<String> {
         return self.file_names.clone();
     }
 
-    pub fn set_name_and_path(&mut self, new_name: String, new_path: String) {
+    pub fn set_name_and_paths(&mut self, new_name: String, new_path: PathBuf, new_parent_path: PathBuf) {
         self.name = new_name.clone();
-        self.path = new_path.clone();
+        // self.path = PathBuf::from(new_path.clone());
+        self.path = new_path;
+        self.parent_path = new_parent_path;
     }
 
     /// Returns the verified string. 
     /// TODO: Return an os-indepenedent path object instead!
     /// NOTE: This might be performing superfluous checks, but the basic contents should still be checked to verify that it is in fact a plaenarDir.
-    pub fn verify_dir_string(path_string: &String) ->  Result<String, io::Error>  {
+    pub fn verify_dir_string(path_string: &String) ->  Result<PathBuf, io::Error>  {
     // pub fn verify_dir_string(path_string: &String) ->  Result<&Path, io::Error>  {
 
         let path = Path::new(path_string);
@@ -78,7 +117,7 @@ impl Directory {
             None => return Err(io::Error::new(io::ErrorKind::InvalidData, "Path is not a directory")),
         };
 
-        Ok(String::from(string_to_return))
+        Ok(PathBuf::from(string_to_return))
         // Ok(path)
 
     }
@@ -91,7 +130,9 @@ impl Directory {
 
             Ok(entries) => entries.collect::<Result<Vec<_>, io::Error>>()?,
             Err(err) => {
-                eprintln!("Failed to read directory {} \n {}",self.path.clone() , err);
+                let path_path_buf = self.path.clone();
+                // To lossy string conversion is ok for now -- the printing is the mort important right now..
+                eprintln!("Failed to read directory entry {} \n {}",path_path_buf.to_string_lossy().to_string() , err);
                 return Err(err);
             },
             
