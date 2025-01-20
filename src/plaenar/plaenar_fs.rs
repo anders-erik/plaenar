@@ -15,14 +15,14 @@ mod TaskYaml {
     use std::fs;
     use std::path::PathBuf;
 
-        #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize)]
     struct Project {
         name: String,
     }
 
     #[derive(Debug, Deserialize)]
-    struct Task {
-        name: String,
+    pub struct Task {
+        pub name: String,
         id: String,
         descript: String,
         time_esti: f32,
@@ -33,8 +33,9 @@ mod TaskYaml {
 
     #[derive(Debug, Deserialize)]
     pub struct FileTree {
+        // TODO : This should be a list of, or only a single project name/uuid
         project: Vec<Project>,
-        tasks: Vec<Task>,
+        pub tasks: Vec<Task>,
     }
 
     impl  FileTree {
@@ -77,10 +78,17 @@ impl TaskFile {
     /// Stores the file path and  project name
     pub fn new(mut project_path: PathBuf, project_name: String ) -> TaskFile {
         
-        project_path.set_file_name("tasks.yaml");
+        // this is overriding the project name. I need to append the task.yaml file name to the project path
+        // project_path.set_file_name("tasks.yaml");
+        let file_path = project_path.join("tasks.yaml");
+        // println!("Task File Path: {:?}", task_file_path);
+        // println!("Project Path: {:?}", project_path);
 
-        let file_path = project_path;
+        // let file_path = project_path;
+        // let file_path = task_file_path;
 
+        // println!("File Path: {:?}", file_path);
+        // println!("File Path.is_file(): {:?}", file_path.is_file());
         if ! file_path.is_file() {
             return TaskFile::empty();
         }
@@ -90,13 +98,13 @@ impl TaskFile {
                 file_tree
             }
             Err(e) => {
-                eprintln!("Failed to read YAML file: {}", e);
+                eprintln!("Failed to read YAML file {:?} : {}", file_path, e);
                 return TaskFile::empty();
             }
         };
-        println!("\n");
-        println!("File Path: {:?}", file_path);
-        println!("Parsed file tree: {:?}", file_tree);
+        // println!("\n");
+        // println!("File Path: {:?}", file_path);
+        // println!("Parsed file tree: {:?}", file_tree);
 
         return TaskFile {
             file_path: file_path,
@@ -106,6 +114,15 @@ impl TaskFile {
 
     }
 
+    pub fn print_task_names(&self) {
+        if self.file_tree.tasks.len() == 0 {
+            return;
+        }
+        println!("            {}","tasks.yaml");
+        for task in &self.file_tree.tasks {
+            println!("                {}", task.name);
+        }
+    }
 
 }
 
@@ -121,37 +138,21 @@ pub struct Directory {
     dir_names: Vec<String>,
     file_names: Vec<String>,
 }
-// impl Clone for PlaenarDir {
-//     fn clone(&self) -> Self {
-//         let mut new_dirs = Vec::new();
-
-//         PlaenarDir {
-//             name: self.name.clone(),
-//             path: self.path.clone(),
-            
-//         }
-//     }
-// }
 impl Directory {
 
-    // pub fn new() -> Directory {
-    //     Directory {
-    //         name: String::from(""),
-    //         path: PathBuf::from(""),
-    //         parent_path: PathBuf::from(""),
-    //         dir_names: Vec::new(),
-    //         file_names: Vec::new(),
-    //     }
-    // }
+     pub fn new(_name: &String, _path: &PathBuf, _parent_path: &PathBuf) -> io::Result<Directory> {
 
-     pub fn new(_name: &String, _path: &PathBuf, _parent_path: &PathBuf) -> Directory {
-        Directory {
+        let mut new_dir_obj = Directory {
             name: _name.clone(),
             path: _path.clone(),
             parent_path: _parent_path.clone(),
             dir_names: Vec::new(),
             file_names: Vec::new(),
-        }
+        };
+        new_dir_obj.parse_dir_contents()?;
+        
+        Ok(new_dir_obj)
+        
     }
 
 
@@ -161,28 +162,13 @@ impl Directory {
     }
     
     pub fn get_dir_entries(&self) -> io::Result<Vec<fs::DirEntry>> {    
-        
-        // Grab an easily handled vector of directory entries
-        // let entries = match fs::read_dir(self.path.clone() ) {
-
-        //     Ok(entries) => entries.collect::<Result<Vec<_>, io::Error>>()?,
-        //     Err(err) => {
-        //         let path_path_buf = self.path.clone();
-        //         // To lossy string conversion is ok for now -- the printing is the mort important right now..
-        //         eprintln!("Failed to read directory entry {} \n {}",path_path_buf.to_string_lossy().to_string() , err);
-        //         return Err(err);
-        //     },
-            
-        // };
-
-        
 
         let dir_read = read_dir(self.path.clone())?;
         let dir_vector = dir_read.collect::<Result<Vec<_>, io::Error>>()?;
 
         Ok(dir_vector)
-        
     }
+
     pub fn get_files(&self) -> Vec<String> {
         return self.file_names.clone();
     }
@@ -269,7 +255,23 @@ impl Directory {
         
     }
 
+    pub fn print_directories(&self, space_indent: u8) {
+        let dir_names = &self.dir_names;
 
+        // Indent
+        let mut indent_string = String::new();
+        let mut i: u8 = 0;
+        while i < space_indent {
+            indent_string.push(' ');
+            i = i + 1;
+        }
+
+        for dir_name in dir_names {
+            println!("{}_ {}", indent_string, dir_name);
+        }
+
+
+    }
 
     pub fn print_dir_contents(&self, space_indent: u8) {
         let dir_names = &self.dir_names;

@@ -61,8 +61,26 @@ mkdir -p project_2/assets
 
 
 mkdir -p project_3
-touch    project_3/tasks.yaml
 mkdir -p project_3/module_1
     touch    project_3/module_1/tasks.yaml
 mkdir -p project_3/module_2
     touch    project_3/module_2/tasks.yaml
+touch    project_3/tasks.yaml
+cat > project_3/tasks.yaml <<'endmsg'
+%YAML 1.2
+---
+project:
+  - name: project_1
+
+tasks:
+  - name:       add a task to test directory
+    id:         b4da39df
+    descript:   Need to add at least one task for testing purposes. 
+    time_esti:	0.1
+    time_spent: 0.1
+    completed: false
+    note: |
+        sample note
+
+...
+endmsg

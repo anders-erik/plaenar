@@ -98,14 +98,13 @@ impl Project {
 
             let project_name = project_entry.file_name().into_string().unwrap();
             let project_path = project_entry.path();
-        
-            let mut project_dir = plaenar_fs::Directory::new(&project_name, &project_path, &self.dir.path);
-
+            
             if project_path.is_file() {
                 continue;
             }
-            
-            project_dir.parse_dir_contents();
+            // println!("project_path: {:?}", project_path);
+            let project_dir = plaenar_fs::Directory::new(&project_name, &project_path, &self.dir.path)?;
+
 
 
             let mut new_project_object =  match Project::new(project_name, project_dir) {
@@ -164,7 +163,7 @@ impl Plaenar {
         // Look through environment
         let mut aeusb_root_env: String = String::from("");
         let vars: Vec<(String, String)> = env::vars().collect();
-        for mut var in vars {
+        for var in vars {
         // println!("{:?}", var);
             if var.0 == "AEUSB" {
                 aeusb_root_env = var.1;
@@ -193,14 +192,6 @@ impl Plaenar {
         let aeusb_root_path_buf = PathBuf::from(aeusb_root_dir_string.clone());
 
 
-
-        // let verified_root_dir_string = match plaenar_fs::Directory::verify_dir_string(aeusb_root_dir_string) {
-        //     Ok(returned_string) => returned_string,
-        //     Err(err) => {
-        //         eprintln!("Root directory verification failed : {}", err);
-        //         std::process::exit(1);
-        //     },
-        // };
         if !aeusb_root_path_buf.is_dir() {
             eprintln!("No directory found at provided root location : {}", aeusb_root_path_buf.to_str().unwrap());
             println!("Exiting.");
@@ -209,12 +200,8 @@ impl Plaenar {
 
         let verified_root_path = aeusb_root_path_buf;
 
-        let mut root_dir = plaenar_fs::Directory::new(&String::from("root"), &verified_root_path, &PathBuf::from(""));
+        let root_dir = plaenar_fs::Directory::new(&String::from("root"), &verified_root_path, &PathBuf::from(""))?;
 
-        // self.root_dir.set_name_and_paths(String::from("root"), verified_root_path, PathBuf::from(""));
-
-        root_dir.parse_dir_contents();
-        
 
 
 
@@ -232,15 +219,7 @@ impl Plaenar {
 
         let verified_projects_path = projects_dir_path;
         
-        let mut projects_dir = plaenar_fs::Directory::new(&String::from("projects"), &verified_projects_path, &verified_root_path);
-        // self.projects_dir.set_name_and_paths(String::from("projects"), verified_projects_path);
-        
-        projects_dir.parse_dir_contents();
-        
-
-        // let projects_root_dir_path = PlaenarDir::verify_root_dir(&projects_root_dir_path_string);
-
-        // Ok(())
+        let projects_dir = plaenar_fs::Directory::new(&String::from("projects"), &verified_projects_path, &verified_root_path)?;
         
 
         Ok(Plaenar {
@@ -256,20 +235,22 @@ impl Plaenar {
         // TODO: loop through projects and print them
         
         self.root_dir.print_dir_contents(0);
-
+        // self.projects_dir
         println!("{}", "\nprojects");
 
         // Print all projects
         let project_count = self.projects.len();
         for i in 0..project_count {
             println!("    {}", self.projects[i].name);
+            self.projects[i].task_file.print_task_names();
             // self.projects[i].dir.print_dir_contents(8);
 
             // Print modules
             let module_count = self.projects[i].sub_projects.len();
             for j in 0..module_count {
                 println!("        {}", self.projects[i].sub_projects[j].name);
-                self.projects[i].sub_projects[j].dir.print_dir_contents(12);
+                self.projects[i].sub_projects[j].dir.print_directories(12);
+                self.projects[i].sub_projects[j].task_file.print_task_names();
             } 
         }
 
@@ -278,11 +259,11 @@ impl Plaenar {
     /// Load all project-dirs from the projects directory and pushes them as Project-objects into vector
     pub fn load_projects(&mut self) -> Result<(), std::io::Error>{
 
-        // names of directories in projects directory
-        // let projects_dir_dir_names = self.projects_dir.get_dirs();
+        // All entris in projects root folder
         let projects_root_entries = self.projects_dir.get_dir_entries()?;
-        // let projects_root_path = self.projects_dir.path.clone();
 
+
+        // Load projects recursively
         for project_entry in projects_root_entries {
 
             let project_name = project_entry.file_name().into_string().unwrap();
@@ -292,9 +273,8 @@ impl Plaenar {
                 continue;
             }
 
-            let mut project_dir = plaenar_fs::Directory::new(&project_name, &project_path, &self.projects_dir.path);
+            let project_dir = plaenar_fs::Directory::new(&project_name, &project_path, &self.projects_dir.path)?;
 
-            project_dir.parse_dir_contents();
 
 
             let mut new_project_object =  match Project::new(project_name, project_dir) {
@@ -309,10 +289,9 @@ impl Plaenar {
 
             self.projects.push(new_project_object);
 
-
         }
+
         Ok(())
-        // self.projects.push( PlaenarProject::new() );
     }
 
 
